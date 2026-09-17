@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEONHALLE – Kostenlose Browserspiele</title>
+<meta name="description" content="NEONHALLE ist eine kostenlose Spielesammlung im Browser. Kein Download, kein Konto, einfach spielen.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👾</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     TOKENS
+     ============================================================ */
+  :root{
+    --bg:            #150F2B;
+    --bg-soft:       #1C1440;
+    --surface:       #241A4E;
+    --surface-2:     #2D2160;
+    --line:          #362A66;
+
+    --text:          #F5F3FF;
+    --text-muted:    #A79FD1;
+    --text-faint:    #7A73A8;
+
+    --yellow:        #FFD23F;
+    --yellow-dim:    #7A6420;
+    --pink:          #FF5D8F;
+    --pink-dim:      #6E2740;
+    --teal:          #2FE6B8;
+    --teal-dim:      #17604D;
+    --orange:        #FF8A3D;
+    --orange-dim:    #6E3D16;
+    --purple:        #8B7CF6;
+    --purple-dim:    #3B3270;
+    --green:         #4ADE80;
+    --green-dim:     #21572F;
+
+    --radius-card: 20px 20px 8px 8px;
+    --radius-pill: 999px;
+    --radius-chip: 10px;
+
+    --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+    --shadow-ambient: 0 20px 60px -20px rgba(8,5,25,0.6);
+  }
+
+  /* ============================================================
+     RESET
+     ============================================================ */
+  *, *::before, *::after{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(139,124,246,0.14), transparent 40%),
+      radial-gradient(circle at 88% 0%, rgba(255,93,143,0.10), transparent 35%);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  img, svg{ display:block; max-width:100%; }
+  button, input{ font-family: inherit; color: inherit; }
+  a{ color: inherit; }
+  ul{ list-style:none; margin:0; padding:0; }
+  h1,h2,h3,p{ margin:0; }
+
+  :focus-visible{
+    outline: 3px solid var(--yellow);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  .wrap{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ============================================================
+     HEADER
+     ============================================================ */
+  .site-header{
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(21, 15, 43, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .header-row{
+    display:flex;
+    align-items:center;
+    gap: 24px;
+    padding: 16px 28px;
+    flex-wrap: wrap;
+  }
+  .logo{
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .logo em{
+    font-style: normal;
+    color: var(--yellow);
+  }
+  .search-wrap{
+    position: relative;
+    flex: 1 1 260px;
+    max-width: 460px;
+  }
+  .search-wrap svg{
+    position:absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    width: 18px; height: 18px;
+    stroke: var(--text-faint);
+  }
+  #searchInput{
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    padding: 11px 18px 11px 42px;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+  #searchInput::placeholder{ color: var(--text-faint); }
+  #searchInput:focus{ border-color: var(--purple); }
+
+  .header-links{
+    display:flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.92rem;
+    border-radius: var(--radius-pill);
+    padding: 10px 20px;
+    transition: transform 0.15s ease;
+  }
+  .btn:hover{ transform: translateY(-1px); }
+  .btn-primary{ background: var(--yellow); color: #1B1305; }
+  .btn-ghost{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-muted);
+  }
+
+  /* ============================================================
+     HERO
+     ============================================================ */
+  .hero{
+    padding: 64px 0 40px;
+    display:grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    align-items:center;
+  }
+  .hero h1{
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2.3rem, 4.3vw, 3.6rem);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    max-width: 12ch;
+  }
+  .hero p.lead{
+    margin-top: 18px;
+    max-width: 46ch;
+    color: var(--text-muted);
+    font-size: 1.08rem;
+  }
+  .hero-actions{
+    margin-top: 28px;
+    display:flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .hero-stats{
+    margin-top: 40px;
+    display:flex;
+    gap: 36px;
+    flex-wrap: wrap;
+  }
+  .stat b{
+    display:block;
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    font-weight: 700;
+  }
+  .stat span{
+    color: var(--text-faint);
+    font-size: 0.85rem;
+  }
+
+  /* marquee-lights framed featured card */
+  .hero-feature{
+    position: relative;
+    border-radius: 28px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .marquee-lights{
+    position:absolute;
+    inset: 6px;
+    border-radius: 24px;
+    pointer-events:none;
+  }
+  .marquee-lights span{
+    position:absolute;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--yellow);
+    box-shadow: 0 0 8px 1px rgba(255,210,63,0.7);
+    animation: blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink{ 0%,100%{ opacity:1; } 50%{ opacity:0.25; } }
+
+  .feature-card{
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    display:flex;
+    flex-direction:column;
+    justify-content: flex-end;
+    padding: 22px;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    text-align: left;
+  }
+  .feature-badge{
+    position:absolute;
+    top: 16px; left: 16px;
+    background: rgba(21,15,43,0.55);
+    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+  }
+  .feature-card .icon{ font-size: 2.4rem; margin-bottom: 6px; }
+  .feature-card h3{
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+  }
+  .feature-card p{ color: rgba(245,243,255,0.85); font-size: 0.9rem; margin-top: 4px; }
+
+  /* ============================================================
+     TICKER
+     ============================================================ */
+  .ticker-strip{
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-soft);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .ticker-track{
+    display:inline-flex;
+    gap: 48px;
+    padding: 12px 0;
+    animation: scroll-left 28s linear infinite;
+  }
+  .ticker-track span{
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .ticker-track span b{ color: var(--yellow); }
+  @keyframes scroll-left{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(-50%); }
+  }
+  .ticker-strip:hover .ticker-track{ animation-play-state: paused; }
+
+  /* ============================================================
+     CATEGORY CHIPS
+     ============================================================ */
+  .categories{
+    padding: 36px 0 8px;
+  }
+  .chip-row{
+    display:flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .chip{
+    flex: 0 0 auto;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 9px 18px;
+    border-radius: var(--radius-chip);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .chip[aria-pressed="true"]{
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+
+  /* ============================================================
+     GAME GRID
+     ============================================================ */
+  .games-section{ padding: 28px 0 80px; }
+  .games-grid{
+    margin-top: 22px;
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 20px;
+  }
+  .game-card{
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    padding: 0;
+    overflow: hidden;
+    display:flex;
+    flex-direction: column;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .game-card:hover{ transform: translateY(-4px); }
+  .game-thumb{
+    position: relative;
+    aspect-ratio: 4 / 3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 2.6rem;
+  }
+  .game-tag{
+    position:absolute;
+    top:10px; left:10px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: var(--radius-pill);
+    background: rgba(21,15,43,0.55);
+  }
+  .game-play-hint{
+    position:absolute;
+    inset: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(21,15,43,0);
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.18s ease, background 0.18s ease;
+  }
+  .game-card:hover .game-play-hint{
+    opacity: 1;
+    background: rgba(21,15,43,0.45);
+  }
+  .game-info{ padding: 14px 16px 16px; }
+  .game-info h3{
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    font-weight: 700;
+  }
+  .game-info span{
+    display:block;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: var(--text-faint);
+  }
+
+  .empty-state{
+    display:none;
+    text-align:center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state.show{ display:block; }
+  .empty-state .icon{ font-size: 2.2rem; margin-bottom: 10px; }
+
+  /* ============================================================
+     MODAL / PLAYER
+     ============================================================ */
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(9,6,20,0.82);
+    backdrop-filter: blur(4px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+    z-index: 100;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    width: min(720px, 100%);
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: var(--shadow-ambient);
+  }
+  .modal-head{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal-head-title{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .modal-head-title h2{
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .modal-close{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+  .modal-stage{
+    background: #0B0818;
+    min-height: 380px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 28px;
+    text-align:center;
+  }
+  .modal-stage iframe{
+    width: 100%;
+    height: 420px;
+    border: none;
+    border-radius: 10px;
+  }
+  .placeholder-note{ max-width: 44ch; color: var(--text-muted); }
+  .placeholder-note .icon{ font-size: 2.4rem; margin-bottom: 12px; }
+  .placeholder-note code{
+    display:block;
+    margin-top: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.78rem;
+    color: var(--teal);
+    text-align:left;
+    overflow-x:auto;
+  }
+
+  /* Reaktionstest demo game */
+  .reaction-game{ width:100%; max-width: 420px; }
+  #reactionCanvas{
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--surface);
+    border-radius: 14px;
+    cursor: crosshair;
+    touch-action: manipulation;
+  }
+  .reaction-status{
+    margin-top: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-height: 1.4em;
+  }
+  .reaction-status b{ color: var(--yellow); }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  .site-footer{
+    border-top: 1px solid var(--line);
+    padding: 48px 0 32px;
+    background: var(--bg-soft);
+  }
+  .footer-grid{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 32px;
+  }
+  .footer-grid h4{
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+  }
+  .footer-grid p, .footer-grid a{
+    color: var(--text-faint);
+    font-size: 0.88rem;
+    text-decoration: none;
+  }
+  .footer-grid li{ margin-bottom: 8px; }
+  .footer-grid a:hover{ color: var(--text-muted); }
+  .footer-bottom{
+    margin-top: 36px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    display:flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: var(--text-faint);
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 860px){
+    .hero{ grid-template-columns: 1fr; padding-top: 40px; }
+    .footer-grid{ grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 560px){
+    .header-row{ padding: 14px 18px; }
+    .header-links{ display:none; }
+    .wrap{ padding: 0 18px; }
+    .footer-grid{ grid-template-columns: 1fr; }
+    .hero-stats{ gap: 22px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior: auto; }
+    .ticker-track{ animation: none; }
+    .marquee-lights span{ animation: none; opacity: 0.9; }
+    .game-card{ transition: none; }
+    .game-card:hover{ transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-row">
+    <div class="logo">NEON<em>HALLE</em></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="searchInput" type="search" placeholder="Spiel suchen …" aria-label="Spiel suchen">
+    </div>
+    <div class="header-links">
+      <a class="btn btn-ghost" href="#kategorien">Kategorien</a>
+      <a class="btn btn-primary" href="#spiele">Spielen</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <div>
+      <h1>Spiel jetzt. Kein Download, kein Konto.</h1>
+      <p class="lead">NEONHALLE ist eine freie Sammlung kleiner Browserspiele – öffnen, klicken, loslegen. Alles läuft direkt hier auf der Seite.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#spiele">Zum Spiele-Raster</a>
+        <a class="btn btn-ghost" href="#kategorien">Kategorien ansehen</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><b>12</b><span>Spiele</span></div>
+        <div class="stat"><b>6</b><span>Kategorien</span></div>
+        <div class="stat"><b>0&nbsp;€</b><span>immer kostenlos</span></div>
+      </div>
+    </div>
+
+    <div class="hero-feature">
+      <div class="marquee-lights" id="marqueeLights"></div>
+      <button class="feature-card" id="featureCard" style="background: linear-gradient(155deg, var(--pink), var(--purple));">
+        <span class="feature-badge">Beliebt diese Woche</span>
+        <span class="icon">⚡</span>
+        <h3>Blitzreflex</h3>
+        <p>Teste deine Reaktionszeit – Demo-Spiel, direkt spielbar.</p>
+      </button>
+    </div>
+  </section>
+
+  <div class="ticker-strip" aria-hidden="true">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+  <section class="categories wrap" id="kategorien">
+    <div class="chip-row" id="chipRow" role="group" aria-label="Nach Kategorie filtern"></div>
+  </section>
+
+  <section class="games-section wrap" id="spiele">
+    <div class="games-grid" id="gamesGrid"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🔍</div>
+      <p>Keine Spiele gefunden. Versuche eine andere Suche oder Kategorie.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div>
+      <h4>NEONHALLE</h4>
+      <p>Ein offenes Grundgerüst für eine Browserspiele-Seite, gebaut für GitHub Pages. Ersetze die Platzhalter-Spiele durch eigene.</p>
+    </div>
+    <div>
+      <h4>Kategorien</h4>
+      <ul id="footerCategoryList"></ul>
+    </div>
+    <div>
+      <h4>Für Entwickler</h4>
+      <ul>
+        <li>Spiele bearbeiten: Objekt <code>games</code> im Script-Bereich</li>
+        <li>Eigenes Spiel einbinden: <code>type: 'iframe'</code> + <code>embedUrl</code> setzen</li>
+        <li>Hosting: GitHub Pages, einfach dieses <code>index.html</code> committen</li>
+      </ul>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© <span id="year"></span> NEONHALLE</span>
+    <span>Gebaut als Grundgerüst – erweitere sie nach Belieben.</span>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <div class="modal-head-title">
+        <span id="modalIcon" style="font-size:1.3rem;"></span>
+        <h2 id="modalTitle"></h2>
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Schließen">✕</button>
+    </div>
+    <div class="modal-stage" id="modalStage"></div>
+  </div>
+</div>
+
+<script>
+/* ==================================================================
+   SPIEL-DATEN
+   ------------------------------------------------------------------
+   Jeder Eintrag ist ein Spiel-Objekt. So fügst du ein eigenes Spiel
+   hinzu:
+
+   1) Eigenes, extern gehostetes HTML5-Spiel per iframe einbinden:
+      { id:'mein-spiel', title:'Mein Spiel', category:'Arcade',
+        icon:'🎮', type:'iframe', embedUrl:'https://meine-domain.de/spiel/' }
+
+   2) Platzhalter (Standard, solange kein Spiel verlinkt ist):
+      type:'placeholder' – zeigt im Player einen Hinweistext.
+
+   3) 'demo' ist ein Sonderfall: das eingebaute Reaktionsspiel.
+   ================================================================== */
+  const CATEGORY_COLORS = {
+    'Action':      { c: 'var(--pink)',   dim: 'var(--pink-dim)'   },
+    'Rennen':      { c: 'var(--orange)', dim: 'var(--orange-dim)' },
+    'Puzzle':      { c: 'var(--teal)',   dim: 'var(--teal-dim)'   },
+    'Arcade':      { c: 'var(--yellow)', dim: 'var(--yellow-dim)' },
+    'Denkspiele':  { c: 'var(--purple)', dim: 'var(--purple-dim)' },
+    'Sport':       { c: 'var(--green)',  dim: 'var(--green-dim)'  }
+  };
+
+  const games = [
+    { id:'blitzreflex',    title:'Blitzreflex',       category:'Action',     icon:'⚡',  type:'demo' },
+    { id:'ninja-lauf',     title:'Ninja Lauf',         category:'Action',     icon:'🥷',  type:'placeholder' },
+    { id:'turbo-drift',    title:'Turbo Drift',        category:'Rennen',     icon:'🏎️', type:'placeholder' },
+    { id:'highway-chaos',  title:'Highway Chaos',      category:'Rennen',     icon:'🚗',  type:'placeholder' },
+    { id:'bunte-bloecke',  title:'Bunte Blöcke',       category:'Puzzle',     icon:'🧩',  type:'placeholder' },
+    { id:'kristallkette',  title:'Kristallkette',      category:'Puzzle',     icon:'💎',  type:'placeholder' },
+    { id:'sprung-marathon',title:'Sprung-Marathon',    category:'Arcade',     icon:'👾',  type:'placeholder' },
+    { id:'retro-invasion', title:'Retro Invasion',     category:'Arcade',     icon:'🛸',  type:'placeholder' },
+    { id:'zahlenjaeger',   title:'Zahlenjäger',        category:'Denkspiele',icon:'🧠',  type:'placeholder' },
+    { id:'schachgenie',    title:'Schachgenie',        category:'Denkspiele',icon:'♟️',  type:'placeholder' },
+    { id:'tor-duell',      title:'Tor-Duell',          category:'Sport',      icon:'⚽',  type:'placeholder' },
+    { id:'basketball',     title:'Basketball Battle',  category:'Sport',      icon:'🏀',  type:'placeholder' }
+  ];
+
+  const categories = Object.keys(CATEGORY_COLORS);
+
+  /* ---------------- Rendering: Chips ---------------- */
+  const chipRow = document.getElementById('chipRow');
+  const footerCategoryList = document.getElementById('footerCategoryList');
+  let activeCategory = 'Alle';
+  let searchTerm = '';
+
+  function buildChips(){
+    const all = ['Alle', ...categories];
+    chipRow.innerHTML = all.map(cat =>
+      `<button class="chip" data-cat="${cat}" aria-pressed="${cat === activeCategory}">${cat}</button>`
+    ).join('');
+    chipRow.querySelectorAll('.chip').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        activeCategory = btn.dataset.cat;
+        buildChips();
+        renderGrid();
+      });
+    });
+  }
+
+  footerCategoryList.innerHTML = categories.map(c => `<li>${c}</li>`).join('');
+
+  /* ---------------- Rendering: Game grid ---------------- */
+  const grid = document.getElementById('gamesGrid');
+  const emptyState = document.getElementById('emptyState');
+
+  function renderGrid(){
+    const term = searchTerm.trim().toLowerCase();
+    const filtered = games.filter(g=>{
+      const matchesCategory = activeCategory === 'Alle' || g.category === activeCategory;
+      const matchesSearch = g.title.toLowerCase().includes(term) || g.category.toLowerCase().includes(term);
+      return matchesCategory && matchesSearch;
+    });
+
+    grid.innerHTML = filtered.map(g=>{
+      const col = CATEGORY_COLORS[g.category];
+      return `
+        <button class="game-card" data-id="${g.id}">
+          <div class="game-thumb" style="background: linear-gradient(150deg, ${col.c}, ${col.dim});">
+            <span class="game-tag">${g.category}</span>
+            <span>${g.icon}</span>
+            <div class="game-play-hint">Jetzt spielen</div>
+          </div>
+          <div class="game-info">
+            <h3>${g.title}</h3>
+            <span>${g.type === 'demo' ? 'Direkt spielbar' : 'Platzhalter'}</span>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    emptyState.classList.toggle('show', filtered.length === 0);
+
+    grid.querySelectorAll('.game-card').forEach(card=>{
+      card.addEventListener('click', ()=> openGame(card.dataset.id));
+    });
+  }
+
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    searchTerm = e.target.value;
+    renderGrid();
+  });
+
+  document.getElementById('featureCard').addEventListener('click', ()=> openGame('blitzreflex'));
+
+  /* ---------------- Ticker ---------------- */
+  const tickerItems = [
+    'Neu: <b>Ninja Lauf</b> ist jetzt online',
+    'Tipp: <b>Blitzreflex</b> direkt ausprobieren',
+    '12 Spiele in 6 Kategorien',
+    'Keine Anmeldung nötig',
+    'Läuft komplett im Browser'
+  ];
+  const tickerTrack = document.getElementById('tickerTrack');
+  const tickerHtml = tickerItems.map(t=>`<span>${t}</span>`).join('');
+  tickerTrack.innerHTML = tickerHtml + tickerHtml; // doppelt für nahtlose Schleife
+
+  /* ---------------- Marquee lights (dekorativ, passend zum Arkade-Thema) ---------------- */
+  const lightsWrap = document.getElementById('marqueeLights');
+  const lightCount = 18;
+  for(let i=0; i<lightCount; i++){
+    const t = i / lightCount;
+    const span = document.createElement('span');
+    const angle = t * Math.PI * 2;
+    const rx = 48, ry = 48;
+    span.style.left = `calc(50% + ${Math.cos(angle)*rx}%)`;
+    span.style.top = `calc(50% + ${Math.sin(angle)*ry}%)`;
+    span.style.animationDelay = `${(i % 6) * 0.15}s`;
+    lightsWrap.appendChild(span);
+  }
+
+  /* ---------------- Modal / Player ---------------- */
+  const overlay = document.getElementById('modalOverlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalIcon = document.getElementById('modalIcon');
+  const modalStage = document.getElementById('modalStage');
+  const modalClose = document.getElementById('modalClose');
+
+  function openGame(id){
+    const g = games.find(game => game.id === id);
+    if(!g) return;
+
+    modalTitle.textContent = g.title;
+    modalIcon.textContent = g.icon;
+
+    if(g.type === 'iframe' && g.embedUrl){
+      modalStage.innerHTML = `<iframe src="${g.embedUrl}" title="${g.title}" allowfullscreen></iframe>`;
+    } else if(g.type === 'demo'){
+      modalStage.innerHTML = `
+        <div class="reaction-game">
+          <canvas id="reactionCanvas" width="400" height="300"></canvas>
+          <div class="reaction-status" id="reactionStatus">Klicke in das Feld, um zu starten.</div>
+        </div>`;
+      initReactionGame();
+    } else {
+      modalStage.innerHTML = `
+        <div class="placeholder-note">
+          <div class="icon">${g.icon}</div>
+          <p><strong>${g.title}</strong> ist noch ein Platzhalter.</p>
+          <p>Ersetze diesen Bereich mit deinem eigenen Spiel, indem du im Objekt <code>games</code> den Typ auf <code>'iframe'</code> setzt und eine <code>embedUrl</code> hinzufügst.</p>
+          <code>{ id:'${g.id}', type:'iframe', embedUrl:'https://…' }</code>
+        </div>`;
+    }
+
+    overlay.classList.add('show');
+    modalClose.focus();
+  }
+
+  function closeModal(){
+    overlay.classList.remove('show');
+    modalStage.innerHTML = '';
+  }
+
+  modalClose.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeModal(); });
+
+  /* ---------------- Demo-Spiel: Reaktionstest ---------------- */
+  function initReactionGame(){
+    const canvas = document.getElementById('reactionCanvas');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('reactionStatus');
+    let state = 'idle'; // idle -> waiting -> ready -> done
+    let dot = null;
+    let waitTimeout = null;
+    let readyAt = 0;
+
+    function drawIdle(){
+      ctx.fillStyle = 'rgba(245,243,255,0.06)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = '#A79FD1';
+      ctx.font = '16px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Klicken zum Starten', canvas.width/2, canvas.height/2);
+    }
+
+    function drawDot(){
+      ctx.fillStyle = 'rgba(245,243,255,0.06)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.beginPath();
+      ctx.fillStyle = '#FFD23F';
+      ctx.arc(dot.x, dot.y, 26, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    function reset(){
+      state = 'idle';
+      clearTimeout(waitTimeout);
+      drawIdle();
+      status.innerHTML = 'Klicke in das Feld, um zu starten.';
+    }
+
+    function startRound(){
+      state = 'waiting';
+      ctx.fillStyle = 'rgba(245,243,255,0.06)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      status.textContent = 'Warte auf den Punkt …';
+      const delay = 800 + Math.random() * 1800;
+      waitTimeout = setTimeout(()=>{
+        dot = {
+          x: 40 + Math.random() * (canvas.width - 80),
+          y: 40 + Math.random() * (canvas.height - 80)
+        };
+        state = 'ready';
+        readyAt = performance.now();
+        drawDot();
+      }, delay);
+    }
+
+    canvas.addEventListener('click', (e)=>{
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+
+      if(state === 'idle'){
+        startRound();
+        return;
+      }
+      if(state === 'waiting'){
+        clearTimeout(waitTimeout);
+        status.innerHTML = 'Zu früh geklickt! <b>Nochmal</b> versuchen.';
+        setTimeout(reset, 1200);
+        state = 'done';
+        return;
+      }
+      if(state === 'ready'){
+        const dx = x - dot.x, dy = y - dot.y;
+        if(Math.sqrt(dx*dx + dy*dy) <= 26){
+          const ms = Math.round(performance.now() - readyAt);
+          status.innerHTML = `Reaktionszeit: <b>${ms} ms</b> — nochmal klicken zum Wiederholen`;
+          state = 'idle';
+          drawIdle();
+        }
+      }
+    });
+
+    drawIdle();
+  }
+
+  /* ---------------- Init ---------------- */
+  buildChips();
+  renderGrid();
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
