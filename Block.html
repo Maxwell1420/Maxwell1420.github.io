@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Block Blast Clone</title>
+    <style>
+        body {
+            margin: 0;
+            background: #121214;
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+        h1 { margin: 5px 0; font-size: 24px; color: #ff007f; text-shadow: 0 0 10px rgba(255,0,127,0.3); }
+        .score-box { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #00ffcc; }
+        
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            gap: 4px;
+            background: #1e1e24;
+            padding: 6px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            width: 340px;
+            height: 340px;
+            max-width: 85vw;
+            max-height: 85vw;
+        }
+        .cell {
+            background: #2a2a35;
+            border-radius: 4px;
+            transition: background 0.1s;
+        }
+        
+        #shapes-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 340px;
+            max-width: 85vw;
+            height: 120px;
+            margin-top: 25px;
+            background: #1e1e24;
+            border-radius: 12px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .shape-slot {
+            width: 90px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .draggable-shape {
+            display: grid;
+            gap: 2px;
+            cursor: grab;
+            position: absolute;
+            transform-origin: center;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+        .draggable-shape:active { cursor: grabbing; transform: scale(1.1); }
+        .block { border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <h1>🟩 Block Blast</h1>
+    <div class="score-box">Punkte: <span id="score-val">0</span></div>
+
+    <div id="grid"></div>
+    <div id="shapes-container">
+        <div class="shape-slot" id="slot-0"></div>
+        <div class="shape-slot" id="slot-1"></div>
+        <div class="shape-slot" id="slot-2"></div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 8;
+        const gridElement = document.getElementById('grid');
+        const scoreValElement = document.getElementById('score-val');
+        
+        let board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+        let score = 0;
+        let currentShapes = [null, null, null];
+        
+        const COLORS = {
+            1: '#ff3366', // I-Block
+            2: '#33ccff', // Quadrat
+            3: '#33ff66', // L-Block
+            4: '#ffcc33', // T-Block
+            5: '#cc33ff'  // Einzelner Block
+        };
+
+        const SHAPE_TEMPLATES = [
+            { matrix: [[1,1],[1,1]], color: 2 }, // 2x2 Quadrat
+            { matrix: [[1]], color: 5 }, // 1x1 Einzelblock
+            { matrix: [[1,1,1,1]], color: 1 }, // 4x1 Linie
+            { matrix: [[1,0,0],[1,1,1]], color: 3 }, // L-Form
+            { matrix: [[0,1,0],[1,1,1]], color: 4 }, // T-Form
+            { matrix: [[1,1]], color: 1 }, // 2x1 Linie
+            { matrix: [[1],[1],[1]], color: 1 } // 1x3 Vertikale Linie
+        ];
+
+        // Spielfeld erzeugen
+        function createBoard() {
+            gridElement.innerHTML = '';
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    gridElement.appendChild(cell);
+                }
+            }
+        }
+
+        function drawBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                const r = parseInt(cell.dataset.row);
+                const c = parseInt(cell.dataset.col);
+                if (board[r][c] !== 0) {
+                    cell.style.backgroundColor = COLORS[board[r][c]];
+                } else {
+                    cell.style.backgroundColor = '#2a2a35';
+                }
+            });
+        }
+
+        // Neue Formen generieren
+        function spawnShapes() {
+            for (let i = 0; i < 3; i++) {
+                const randomTemplate = SHAPE_TEMPLATES[Math.floor(Math.random() * SHAPE_TEMPLATES.length)];
+                currentShapes[i] = JSON.parse(JSON.stringify(randomTemplate));
+                renderShapeInSlot(currentShapes[i], i);
+            }
+            if (checkGameOver()) {
+                alert("Game Over! Deine Punktzahl: " + score);
+                resetGame();
+            }
+        }
+
+        function renderShapeInSlot(shape, slotIndex) {
+            const slot = document.getElementById(`slot-${slotIndex}`);
+            slot.innerHTML = '';
+            if (!shape) return;
+
+            const shapeElement = document.createElement('div');
+            shapeElement.classList.add('draggable-shape');
+            shapeElement.dataset.slot = slotIndex;
+            
+            const rows = shape.matrix.length;
+            const cols = shape.matrix[0].length;
+            
+            shapeElement.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+            shapeElement.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            
+            // Größe im Slot skalieren
+            const cellSize = Math.min(18, 60 / Math.max(rows, cols));
+            shapeElement.style.gap = '2px';
+
+            shape.matrix.forEach((row) => {
+                row.forEach((value) => {
+                    const block = document.createElement('div');
+                    block.classList.add('block');
+                    block.style.width = `${cellSize}px`;
+                    block.style.height = `${cellSize}px`;
+                    if (value === 1) {
+                        block.style.backgroundColor = COLORS[shape.color];
+                    } else {
+                        block.style.backgroundColor = 'transparent';
+                    }
+                    shapeElement.appendChild(block);
+                });
+            });
+
+            slot.appendChild(shapeElement);
+            addDragListeners(shapeElement);
+        }
+
+        // Drag & Drop Steuerung (PC & Touch)
+        function addDragListeners(el) {
+            let active = false;
+            let currentX, currentY, initialX, initialY;
+            let xOffset = 0, yOffset = 0;
+
+            el.addEventListener('touchstart', dragStart, {passive: false});
+            el.addEventListener('touchend', dragEnd, {passive: false});
+            el.addEventListener('touchmove', drag, {passive: false});
+            el.addEventListener('mousedown', dragStart);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('mousemove', drag);
+
+            function dragStart(e) {
+                if (e.type === 'touchstart') {
+                    initialX = e.touches[0].clientX - xOffset;
+                    initialY = e.touches[0].clientY - yOffset;
+                } else {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                }
+                active = true;
+                el.style.transition = 'none';
+            }
+
+            function drag(e) {
+                if (!active) return;
+                e.preventDefault();
+                
+                if (e.type === 'touchmove') {
+                    currentX = e.touches[0].clientX - initialX;
+                    currentY = e.touches[0].clientY - initialY;
+                } else {
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                }
+
+                xOffset = currentX;
+                yOffset = currentY;
+                el.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) scale(1.2)`;
+            }
+
+            function dragEnd(e) {
+                if (!active) return;
+                active = false;
+                
+                // Position bestimmen
+                const rect = el.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                // Finde Zelle unter dem Zentrum der gezogenen Form
+                el.style.display = 'none';
+                const elementUnder = document.elementFromPoint(centerX, centerY);
+                el.style.display = 'grid';
+
+                const cell = elementUnder ? elementUnder.closest('.cell') : null;
+                const slotIndex = parseInt(el.dataset.slot);
+                const shape = currentShapes[slotIndex];
+
+                if (cell && shape) {
+                    const targetRow = parseInt(cell.dataset.row);
+                    const targetCol = parseInt(cell.dataset.col);
+
+                    if (canPlaceShape(shape, targetRow, targetCol)) {
+                        placeShape(shape, targetRow, targetCol);
+                        document.getElementById(`slot-${slotIndex}`).innerHTML = '';
+                        currentShapes[slotIndex] = null;
+                        
+                        checkLines();
+                        drawBoard();
+                        
+                        // Wenn alle 3 Formen platziert wurden, neue spawnen
+                        if (currentShapes.every(s => s === null)) {
+                            spawnShapes();
+                        } else if (checkGameOver()) {
+                            alert("Game Over! Deine Punktzahl: " + score);
+                            resetGame();
+                        }
+                        return;
+                    }
+                }
+
+                // Zurücksetzen wenn nicht platziert
+                xOffset = 0; yOffset = 0;
+                el.style.transition = 'transform 0.2s';
+                el.style.transform = 'translate3d(0, 0, 0)';
+            }
+        }
+
+        function canPlaceShape(shape, startRow, startCol) {
+            for (let r = 0; r < shape.matrix.length; r++) {
+                for (let c = 0; c < shape.matrix[r].length; c++) {
+                    if (shape.matrix[r][c] === 1) {
+                        const boardRow = startRow + r;
+                        const boardCol = startCol + c;
+                        
+                        if (boardRow >= BOARD_SIZE || boardCol >= BOARD_SIZE || boardRow < 0 || boardCol < 0) return false;
+                        if (board[boardRow][boardCol] !== 0) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function placeShape(shape, startRow, startCol) {
+            let blocksPlaced = 0;
+            for (let r = 0; r < shape.matrix.length; r++) {
+                for (let c = 0; c < shape.matrix[r].length; c++) {
+                    if (shape.matrix[r][c] === 1) {
+                        board[startRow + r][startCol + c] = shape.color;
+                        blocksPlaced++;
+                    }
+                }
+            }
+            score += blocksPlaced;
+            scoreValElement.textContent = score;
+        }
+
+        function checkLines() {
+            let rowsClear = [];
+            let colsClear = [];
+
+            // Zeilen prüfen
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                if (board[r].every(val => val !== 0)) rowsClear.push(r);
+            }
+
+            // Spalten prüfen
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                let full = true;
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    if (board[r][c] === 0) full = false;
+                }
+                if (full) colsClear.push(c);
+            }
+
+            // Zeilen und Spalten leeren
+            rowsClear.forEach(r => board[r].fill(0));
+            colsClear.forEach(c => {
+                for (let r = 0; r < BOARD_SIZE; r++) board[r][c] = 0;
+            });
+
+            // Punkte berechnen
+            const clearedCount = rowsClear.length + colsClear.length;
+            if (clearedCount > 0) {
+                score += clearedCount * 100;
+                scoreValElement.textContent = score;
+            }
+        }
+
+        function checkGameOver() {
+            for (let i = 0; i < 3; i++) {
+                const shape = currentShapes[i];
+                if (!shape) continue;
+
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        if (canPlaceShape(shape, r, c)) return false;
+                    }
+                }
+            }
+            return currentShapes.some(s => s !== null);
+        }
+
+        function resetGame() {
+            board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+            score = 0;
+            scoreValElement.textContent = score;
+            createBoard();
+            drawBoard();
+            spawnShapes();
+        }
+
+        // Start
+        createBoard();
+        spawnShapes();
+    </script>
+</body>
+</html>
