@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Neon Dash – NEONHALLE</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏃</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:         #150F2B;
+    --surface:    #1C1440;
+    --surface-2:  #241A4E;
+    --line:       #362A66;
+    --text:       #F5F3FF;
+    --text-muted: #A79FD1;
+    --text-faint: #7A73A8;
+    --yellow:     #FFD23F;
+    --pink:       #FF5D8F;
+    --teal:       #2FE6B8;
+    --orange:     #FF8A3D;
+    --purple:     #8B7CF6;
+    --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{ margin:0; height:100%; }
+  body{
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(139,124,246,0.14), transparent 42%),
+      radial-gradient(circle at 90% 85%, rgba(255,93,143,0.10), transparent 38%);
+    color: var(--text);
+    font-family: var(--font-body);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  button{ font-family: inherit; }
+  :focus-visible{ outline: 3px solid var(--yellow); outline-offset: 2px; border-radius: 6px; }
+
+  #app{ width:100%; display:flex; align-items:center; justify-content:center; }
+  #app:fullscreen,
+  #app:-webkit-full-screen{
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(139,124,246,0.14), transparent 42%),
+      radial-gradient(circle at 90% 85%, rgba(255,93,143,0.10), transparent 38%);
+    padding: 20px;
+  }
+  #app:fullscreen .game-card,
+  #app:-webkit-full-screen .game-card{
+    max-width: 480px;
+  }
+  #app:fullscreen .canvas-wrap,
+  #app:-webkit-full-screen .canvas-wrap{
+    aspect-ratio: auto;
+    height: min(78vh, 780px);
+  }
+
+  .game-card{
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 20px 20px 22px;
+    box-shadow: 0 24px 60px -24px rgba(8,5,25,0.7);
+  }
+
+  .title-row{
+    display:flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .title-row h1{
+    margin:0;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.01em;
+  }
+  .title-row h1 em{ font-style: normal; color: var(--orange); }
+  .title-row p{ margin: 2px 0 0; font-size: 0.78rem; color: var(--text-faint); }
+
+  .header-actions{ display:flex; gap: 8px; flex: 0 0 auto; }
+  .btn-icon{
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .btn-icon[hidden]{ display:none; }
+
+  .score-row{ display:flex; gap: 10px; margin-top: 14px; }
+  .score-box{
+    flex:1;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 9px 14px;
+    text-align:center;
+  }
+  .score-box span{ display:block; font-size: 0.68rem; color: var(--text-faint); }
+  .score-box b{ display:block; font-family: var(--font-display); font-size: 1.3rem; margin-top: 2px; }
+  #scoreValue{ color: var(--yellow); }
+  #highscoreValue{ color: var(--teal); }
+
+  .canvas-wrap{
+    position: relative;
+    margin-top: 14px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    aspect-ratio: 3 / 4;
+    touch-action: none;
+    cursor: pointer;
+  }
+  canvas{ display:block; width: 100%; height: 100%; }
+
+  .overlay{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 10px;
+    background: rgba(15,10,36,0.88);
+    backdrop-filter: blur(2px);
+    text-align:center;
+    padding: 24px;
+  }
+  .overlay[hidden]{ display:none; }
+  .overlay .icon{ font-size: 2.1rem; }
+  .overlay h2{ margin:0; font-family: var(--font-display); font-size: 1.2rem; }
+  .overlay p{ margin:0; color: var(--text-muted); font-size: 0.85rem; max-width: 26ch; }
+  .overlay .badge{
+    background: rgba(255,210,63,0.14);
+    color: var(--yellow);
+    border: 1px solid rgba(255,210,63,0.4);
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .btn{
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: var(--yellow);
+    color: #1B1305;
+  }
+
+  .controls-hint{
+    margin-top: 12px;
+    text-align:center;
+    font-size: 0.76rem;
+    color: var(--text-faint);
+  }
+  .controls-hint kbd{
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 0.72rem;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+<div class="game-card">
+  <div class="title-row">
+    <div>
+      <h1>NEON <em>DASH</em></h1>
+      <p>Endless Runner im NEONHALLE-Look</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="pauseBtn" aria-label="Pause">⏸</button>
+      <button class="btn-icon" id="fullscreenBtn" aria-label="Vollbild" hidden>⛶</button>
+    </div>
+  </div>
+
+  <div class="score-row">
+    <div class="score-box"><span>Punkte</span><b id="scoreValue">0</b></div>
+    <div class="score-box"><span>Highscore</span><b id="highscoreValue">0</b></div>
+  </div>
+
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="overlay" id="startOverlay">
+      <div class="icon">🏃</div>
+      <h2>Bereit zum Sprint?</h2>
+      <p>Links/Rechts wechselt die Spur, Hoch springt, Runter rutscht. Auf dem Handy: einfach wischen.</p>
+      <button class="btn" id="startBtn">Los geht's</button>
+    </div>
+
+    <div class="overlay" id="gameOverOverlay" hidden>
+      <div class="icon">💥</div>
+      <h2>Erwischt!</h2>
+      <p id="finalScoreText">Punkte: 0</p>
+      <span class="badge" id="newHighscoreBadge" hidden>Neuer Highscore!</span>
+      <button class="btn" id="restartBtn">Nochmal laufen</button>
+    </div>
+
+    <div class="overlay" id="pauseOverlay" hidden>
+      <div class="icon">⏸</div>
+      <h2>Pause</h2>
+      <button class="btn" id="resumeBtn">Weiter</button>
+    </div>
+  </div>
+
+  <p class="controls-hint">
+    <kbd>←</kbd> <kbd>→</kbd> Spur · <kbd>↑</kbd> Sprung · <kbd>↓</kbd> Rutschen · <kbd>Leertaste</kbd> Pause
+  </p>
+</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- Konfiguration ---------------- */
+  const HIGHSCORE_KEY = 'neonhalle_neondash_highscore';
+  const LANES = 3;
+  const DIST_MAX = 1600;       // Spawn-Distanz (Spieleinheiten)
+  const RESOLVE_AT = 70;       // Distanz, bei der Kollision geprüft wird
+  const REMOVE_AT = -40;       // Distanz, ab der ein passiertes Hindernis verschwindet
+  const BASE_SPEED = 380;
+  const MAX_SPEED = 900;
+  const ACCEL = 0.09;          // Geschwindigkeitszuwachs pro zurückgelegter Einheit
+  const JUMP_DURATION = 0.52;
+  const DUCK_DURATION = 0.55;
+  const MAX_JUMP_PX_FACTOR = 0.30; // relativ zur Canvashoehe
+
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('canvasWrap');
+
+  const scoreEl = document.getElementById('scoreValue');
+  const highscoreEl = document.getElementById('highscoreValue');
+  const startOverlay = document.getElementById('startOverlay');
+  const gameOverOverlay = document.getElementById('gameOverOverlay');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const finalScoreText = document.getElementById('finalScoreText');
+  const newHighscoreBadge = document.getElementById('newHighscoreBadge');
+
+  let highscore = parseInt(localStorage.getItem(HIGHSCORE_KEY) || '0', 10) || 0;
+  highscoreEl.textContent = highscore;
+
+  let W = 0, H = 0, dpr = 1;
+
+  function resizeCanvas(){
+    const rect = wrap.getBoundingClientRect();
+    dpr = window.devicePixelRatio || 1;
+    W = Math.floor(rect.width);
+    H = Math.floor(rect.height);
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  /* ---------------- Spielzustand ---------------- */
+  let running = false, paused = false, over = false;
+  let distanceTraveled, speed, spawnTimer, coinTimer, coinsCollected, score;
+  let entities; // {type:'block'|'low'|'high'|'coin', lane, dist, resolved}
+  let player;
+  let lastTime = 0;
+  let rafHandle = null;
+
+  function resetState(){
+    distanceTraveled = 0;
+    speed = BASE_SPEED;
+    spawnTimer = 1.1;
+    coinTimer = 1.8;
+    coinsCollected = 0;
+    score = 0;
+    entities = [];
+    player = {
+      lane: 1,
+      displayLane: 1,
+      jumping: false, jumpT: 0,
+      ducking: false, duckT: 0
+    };
+    scoreEl.textContent = '0';
+  }
+
+  /* ---------------- Perspektive ---------------- */
+  function ease(p){ return Math.pow(p, 1.6); }
+  function horizonY(){ return H * 0.30; }
+  function groundY(){ return H * 0.94; }
+  function roadHalfTop(){ return W * 0.05; }
+  function roadHalfBottom(){ return W * 0.46; }
+
+  function roadHalfWidth(ep){ return roadHalfTop() + (roadHalfBottom()-roadHalfTop())*ep; }
+  function screenYFor(ep){ return horizonY() + (groundY()-horizonY())*ep; }
+  function laneX(lane, ep){
+    const rhw = roadHalfWidth(ep);
+    return W/2 + (lane-1) * rhw * 0.66;
+  }
+
+  /* ---------------- Eingabe ---------------- */
+  function changeLane(delta){
+    if(!running || paused || over) return;
+    player.lane = Math.max(0, Math.min(LANES-1, player.lane + delta));
+  }
+  function doJump(){
+    if(!running || paused || over) return;
+    if(!player.jumping && !player.ducking){ player.jumping = true; player.jumpT = 0; }
+  }
+  function doDuck(){
+    if(!running || paused || over) return;
+    if(!player.jumping && !player.ducking){ player.ducking = true; player.duckT = 0; }
+  }
+
+  const KEY_ACTIONS = {
+    ArrowLeft: ()=>changeLane(-1), a: ()=>changeLane(-1), A: ()=>changeLane(-1),
+    ArrowRight: ()=>changeLane(1), d: ()=>changeLane(1), D: ()=>changeLane(1),
+    ArrowUp: doJump, w: doJump, W: doJump,
+    ArrowDown: doDuck, s: doDuck, S: doDuck
+  };
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === ' '){ e.preventDefault(); togglePause(); return; }
+    const action = KEY_ACTIONS[e.key];
+    if(action){ e.preventDefault(); action(); }
+  });
+
+  let touchStart = null;
+  wrap.addEventListener('touchstart', (e)=>{
+    const t = e.changedTouches[0];
+    touchStart = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', (e)=>{
+    if(!touchStart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    touchStart = null;
+    if(Math.max(Math.abs(dx), Math.abs(dy)) < 26) return;
+    if(Math.abs(dx) > Math.abs(dy)){
+      changeLane(dx > 0 ? 1 : -1);
+    } else {
+      if(dy < 0) doJump(); else doDuck();
+    }
+  }, { passive: true });
+
+  /* ---------------- Spawning ---------------- */
+  function spawnWave(){
+    const openLane = Math.floor(Math.random()*LANES);
+    for(let lane=0; lane<LANES; lane++){
+      if(lane === openLane) continue;
+      if(Math.random() < 0.72){
+        const roll = Math.random();
+        const type = roll < 0.34 ? 'block' : (roll < 0.67 ? 'low' : 'high');
+        entities.push({ type, lane, dist: DIST_MAX, resolved: false });
+      }
+    }
+  }
+
+  function spawnCoinTrail(){
+    const lane = Math.floor(Math.random()*LANES);
+    const count = 3 + Math.floor(Math.random()*3);
+    for(let i=0; i<count; i++){
+      entities.push({ type:'coin', lane, dist: DIST_MAX + i*70, resolved:false });
+    }
+  }
+
+  /* ---------------- Update ---------------- */
+  function update(dt){
+    distanceTraveled += speed * dt;
+    speed = Math.min(MAX_SPEED, BASE_SPEED + distanceTraveled * ACCEL);
+    score = Math.floor(distanceTraveled/10) + coinsCollected*5;
+    scoreEl.textContent = score;
+
+    spawnTimer -= dt;
+    if(spawnTimer <= 0){ spawnWave(); spawnTimer = Math.max(0.55, 1.15 - distanceTraveled/9000); }
+
+    coinTimer -= dt;
+    if(coinTimer <= 0){ spawnCoinTrail(); coinTimer = 2.2 + Math.random()*1.2; }
+
+    if(player.jumping){
+      player.jumpT += dt;
+      if(player.jumpT >= JUMP_DURATION){ player.jumping = false; player.jumpT = 0; }
+    }
+    if(player.ducking){
+      player.duckT += dt;
+      if(player.duckT >= DUCK_DURATION){ player.ducking = false; player.duckT = 0; }
+    }
+    player.displayLane += (player.lane - player.displayLane) * Math.min(1, dt*12);
+
+    for(let i=entities.length-1; i>=0; i--){
+      const en = entities[i];
+      en.dist -= speed*dt;
+
+      if(!en.resolved && en.dist <= RESOLVE_AT){
+        en.resolved = true;
+        if(en.lane === player.lane){
+          if(en.type === 'coin'){
+            coinsCollected++;
+            entities.splice(i,1);
+            continue;
+          } else {
+            const jumpOk = en.type === 'low' && player.jumping;
+            const duckOk = en.type === 'high' && player.ducking;
+            if(!jumpOk && !duckOk){
+              endGame();
+              return;
+            }
+          }
+        }
+      }
+
+      if(en.dist < REMOVE_AT) entities.splice(i,1);
+    }
+  }
+
+  /* ---------------- Zeichnen ---------------- */
+  function drawBackground(){
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0, '#0F0A24');
+    grad.addColorStop(1, '#1A1338');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  function drawRoad(){
+    const hy = horizonY(), gy = groundY();
+    ctx.fillStyle = '#171030';
+    ctx.beginPath();
+    ctx.moveTo(W/2 - roadHalfTop(), hy);
+    ctx.lineTo(W/2 + roadHalfTop(), hy);
+    ctx.lineTo(W/2 + roadHalfBottom(), gy);
+    ctx.lineTo(W/2 - roadHalfBottom(), gy);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(245,243,255,0.08)';
+    ctx.lineWidth = 2;
+    [-1/3, 1/3].forEach(f=>{
+      ctx.beginPath();
+      ctx.moveTo(W/2 + f*roadHalfTop()*2, hy);
+      ctx.lineTo(W/2 + f*roadHalfBottom()*2, gy);
+      ctx.stroke();
+    });
+
+    // Scrollende Fahrbahnmarkierungen
+    const t = (performance.now()/1000 * speed * 0.5) % 240;
+    for(let i=0;i<6;i++){
+      const phase = ((t/240) + i/6) % 1;
+      const ep = ease(phase);
+      const y = screenYFor(ep);
+      const hw = roadHalfWidth(ep) * 0.9;
+      ctx.strokeStyle = `rgba(245,243,255,${0.03 + ep*0.10})`;
+      ctx.lineWidth = 1 + ep*2;
+      ctx.beginPath();
+      ctx.moveTo(W/2 - hw, y);
+      ctx.lineTo(W/2 + hw, y);
+      ctx.stroke();
+    }
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function drawEntities(){
+    const sorted = entities.slice().sort((a,b)=> b.dist - a.dist);
+    sorted.forEach(en=>{
+      if(en.dist > DIST_MAX || en.dist < REMOVE_AT) return;
+      const p = 1 - Math.max(0, Math.min(1, en.dist/DIST_MAX));
+      const ep = ease(p);
+      const x = laneX(en.lane, ep);
+      const y = screenYFor(ep);
+      const laneW = roadHalfWidth(ep) * (2/3);
+      const scale = 0.22 + ep*0.9;
+
+      if(en.type === 'coin'){
+        const r = 11*scale;
+        ctx.fillStyle = 'var(--yellow)';
+        ctx.fillStyle = '#FFD23F';
+        ctx.shadowColor = 'rgba(255,210,63,0.7)';
+        ctx.shadowBlur = 12*scale;
+        ctx.beginPath();
+        ctx.arc(x, y - r*1.6, r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        return;
+      }
+
+      const w = laneW * 0.72;
+      if(en.type === 'block'){
+        const h = w * 2.3;
+        ctx.fillStyle = '#FF5D8F';
+        roundRect(x-w/2, y-h, w, h, 6*scale);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        roundRect(x-w/2, y-h, w, h*0.22, 6*scale);
+        ctx.fill();
+      } else if(en.type === 'low'){
+        const h = w * 0.55;
+        ctx.fillStyle = '#FF8A3D';
+        roundRect(x-w/2, y-h, w, h, 6*scale);
+        ctx.fill();
+      } else if(en.type === 'high'){
+        const h = w * 0.42;
+        const barY = y - w*1.55;
+        ctx.fillStyle = '#8B7CF6';
+        roundRect(x-w/2, barY-h, w, h, 6*scale);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(245,243,255,0.15)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x-w/2, barY+h); ctx.lineTo(x-w/2, y);
+        ctx.moveTo(x+w/2, barY+h); ctx.lineTo(x+w/2, y);
+        ctx.stroke();
+      }
+    });
+  }
+
+  function drawPlayer(){
+    const x = laneX(player.displayLane, 1);
+    const baseY = groundY();
+    const baseW = W * 0.11;
+    let h = baseW * 1.7;
+    let w = baseW;
+
+    let jumpOffset = 0;
+    if(player.jumping){
+      const prog = player.jumpT / JUMP_DURATION;
+      jumpOffset = Math.sin(prog*Math.PI) * H * MAX_JUMP_PX_FACTOR;
+    }
+    if(player.ducking){
+      h *= 0.55;
+      w *= 1.25;
+    }
+
+    const y = baseY - jumpOffset;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(x, baseY+4, w*0.55, w*0.18, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFD23F';
+    roundRect(x-w/2, y-h, w, h, 10);
+    ctx.fill();
+
+    ctx.fillStyle = '#1B1305';
+    const eyeY = y-h*0.72;
+    ctx.beginPath();
+    ctx.arc(x-w*0.16, eyeY, w*0.07, 0, Math.PI*2);
+    ctx.arc(x+w*0.16, eyeY, w*0.07, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    drawBackground();
+    drawRoad();
+    drawEntities();
+    drawPlayer();
+  }
+
+  /* ---------------- Loop ---------------- */
+  function loop(now){
+    if(!running) return;
+    rafHandle = requestAnimationFrame(loop);
+    if(paused){ lastTime = now; return; }
+    let dt = (now - lastTime) / 1000;
+    lastTime = now;
+    dt = Math.min(dt, 0.05);
+
+    update(dt);
+    if(!running) return; // endGame kann running auf false setzen
+    render();
+  }
+
+  /* ---------------- Start / Ende / Pause ---------------- */
+  function beginGame(){
+    resizeCanvas();
+    resetState();
+    running = true; paused = false; over = false;
+    startOverlay.hidden = true;
+    gameOverOverlay.hidden = true;
+    pauseOverlay.hidden = true;
+    lastTime = performance.now();
+    render();
+    rafHandle = requestAnimationFrame(loop);
+  }
+
+  function endGame(){
+    running = false; over = true;
+    cancelAnimationFrame(rafHandle);
+    render();
+
+    const isNewHighscore = score > highscore;
+    if(isNewHighscore){
+      highscore = score;
+      localStorage.setItem(HIGHSCORE_KEY, String(highscore));
+      highscoreEl.textContent = highscore;
+    }
+    finalScoreText.textContent = 'Punkte: ' + score;
+    newHighscoreBadge.hidden = !isNewHighscore;
+    gameOverOverlay.hidden = false;
+  }
+
+  function togglePause(){
+    if(!running || over) return;
+    paused = !paused;
+    pauseOverlay.hidden = !paused;
+    if(!paused) lastTime = performance.now();
+  }
+
+  document.getElementById('startBtn').addEventListener('click', beginGame);
+  document.getElementById('restartBtn').addEventListener('click', beginGame);
+  document.getElementById('resumeBtn').addEventListener('click', togglePause);
+  document.getElementById('pauseBtn').addEventListener('click', togglePause);
+
+  /* ---------------- Vollbild ---------------- */
+  const appEl = document.getElementById('app');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+  function isFullscreen(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+  function updateFullscreenBtn(){
+    const active = isFullscreen();
+    fullscreenBtn.textContent = active ? '⤢' : '⛶';
+    fullscreenBtn.setAttribute('aria-label', active ? 'Vollbild verlassen' : 'Vollbild');
+    resizeCanvas();
+    render();
+  }
+  function toggleFullscreen(){
+    if(!isFullscreen()){
+      const req = appEl.requestFullscreen || appEl.webkitRequestFullscreen;
+      if(req) req.call(appEl).catch(()=>{});
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit) exit.call(document);
+    }
+  }
+  const fsSupported = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  if(fsSupported){
+    fullscreenBtn.hidden = false;
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', updateFullscreenBtn);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+  }
+
+  /* ---------------- Initial ---------------- */
+  resizeCanvas();
+  resetState();
+  render();
+})();
+</script>
+
+</body>
+</html>
